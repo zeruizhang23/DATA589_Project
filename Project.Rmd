@@ -159,6 +159,7 @@ plot(pvals, main = "Local p-values")
 ```
 
 ## Relationships with covariates
+In plots, variations in the estimated intensity function suggest that the bird point intensity is not uniform across different levels of the covariates (elevation, water, hfi and forest cover).
 ```{r}
 bird <- ppp(x = st_coordinates(bird_albers)[, 1], 
                 y = st_coordinates(bird_albers)[, 2],
