@@ -22,7 +22,7 @@ library(lubridate)
 ```
 
 ## Load Full Data
-```{r run-once, echo=FALSE}
+```{r echo=FALSE}
 bird_bc <- read_csv('bc_bird.csv') %>%
   # filter(stateProvince == "British Columbia") %>%
   select_if(~ !all(is.na(.))) %>%
@@ -30,12 +30,27 @@ bird_bc <- read_csv('bc_bird.csv') %>%
 # write.csv(bird_bc, "bc_bird.csv", row.names = FALSE)
 ```
 
+## Species Distribution
+```{r}
+ggplot(data = bird_bc, aes(x = species, weight = individualCount, fill = iucnRedListCategory)) +
+  geom_bar() +
+  labs(title = "Total Number of Individual Birds Observed by Species",
+       x = "Species",
+       y = "Total Number of Individuals") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+```{r}
+rm(bird_bc)
+```
+
 ## Filter data 
 ```{r run-once, echo=FALSE}
 bird_data <- bird_bc %>%
   mutate(eventDate = ymd(eventDate)) %>%
-  filter(year(eventDate) > 2015) %>%
-  select(species, eventDate, individualCount, iucnRedListCategory, decimalLatitude, decimalLongitude)
+  filter(year(eventDate) > 2015, species == 'Podiceps auritus') %>%
+  select(species, eventDate, individualCount, decimalLatitude, decimalLongitude)
 write.csv(bird_data, "bird_data.csv", row.names = FALSE)
 ```
 
@@ -46,37 +61,62 @@ load('BC_Covariates.Rda')
 window = DATA$Window
 ```
 
+## Podiceps auritus Observations by Season
+```{r}
+bird_data$eventDate <- as.Date(bird_data$eventDate, format = "%Y-%m-%d")
+bird_data$season <- case_when(
+  month(bird_data$eventDate) %in% 3:5   ~ "Spring",
+  month(bird_data$eventDate) %in% 6:8   ~ "Summer",
+  month(bird_data$eventDate) %in% 9:11  ~ "Autumn",
+  month(bird_data$eventDate) %in% c(12, 1:2) ~ "Winter"
+)
+ggplot(bird_data, aes(x = season)) +
+  geom_bar() +
+  labs(title = "Distribution of Podiceps auritus Observations by Season",
+       x = "Season",
+       y = "Count of Observations")
+```
+
+## Podiceps auritus Observations by Year
+```{r}
+bird_data$year <- as.integer(format(as.Date(bird_data$eventDate, "%Y-%m-%d"), "%Y"))
+
+ggplot(bird_data, aes(x = factor(year))) +
+  geom_bar(aes(fill = season)) +
+  labs(title = "Distribution of Observations by and Year",
+       x = "Year",
+       y = "Count of Observations")
+```
+
+
+## ppp Object
 ```{r}
 bird_sf <- st_as_sf(bird_data, coords = c("decimalLongitude", "decimalLatitude"), crs = 4326)
 bc_albers_crs_string <- "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs"
 bird_albers <- st_transform(bird_sf, crs = bc_albers_crs_string)
 ```
 
-## Distribution
 ```{r}
-ggplot(data = bird_albers) +
-  geom_sf(aes(color = species), size = 0.6) +
-  labs(title = "Distribution of Bird Species in British Columbia",
-       color = "Species")
+bird <- ppp(x = st_coordinates(bird_albers)[, 1], 
+                y = st_coordinates(bird_albers)[, 2],
+                window = as.owin(window),
+                marks = as.factor(bird_albers$season))
+plot(bird, cols = c("green", "cyan", "tan", "deeppink"))
 ```
 
 ```{r}
-ggplot(data = bird_albers, aes(x = species, weight = individualCount, fill = iucnRedListCategory)) +
-  geom_bar() +
-  labs(title = "Total Number of Individual Birds Observed by Species",
-       x = "Species",
-       y = "Total Number of Individuals") +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+bird_year <- ppp(x = st_coordinates(bird_albers)[, 1], 
+                y = st_coordinates(bird_albers)[, 2],
+                window = as.owin(window),
+                marks = as.factor(bird_albers$year))
+plot(bird_year, cols = rainbow(length(unique(bird_albers$year))))
 ```
 
-# ppp Object
 ```{r}
 bird_ppp <- ppp(x = st_coordinates(bird_albers)[, 1], 
                 y = st_coordinates(bird_albers)[, 2],
-                window = as.owin(window),
-                marks = as.factor(bird_albers$iucnRedListCategory))
-plot(bird_ppp, cols = rainbow(length(unique(bird_ppp$marks))))
+                window = as.owin(window))
+plot(bird_ppp)
 ```
 
 ## Spatially inhomogeneous $\lambda$
@@ -159,24 +199,20 @@ plot(pvals, main = "Local p-values")
 ```
 
 ## Relationships with covariates
-In plots, variations in the estimated intensity function suggest that the bird point intensity is not uniform across different levels of the covariates (elevation, water, hfi and forest cover).
 ```{r}
-bird <- ppp(x = st_coordinates(bird_albers)[, 1], 
-                y = st_coordinates(bird_albers)[, 2],
-                window = as.owin(window))
 elev <- DATA$Elevation
 forest <- DATA$Forest
 hfi <- DATA$HFI
 water <- DATA$Dist_Water
-rho_elev <- rhohat(bird, elev)
-rho_forest <- rhohat(bird, forest)
-rho_hfi <- rhohat(bird, hfi)
-rho_water <- rhohat(bird, water)
+rho_elev <- rhohat(bird_ppp, elev)
+rho_forest <- rhohat(bird_ppp, forest)
+rho_hfi <- rhohat(bird_ppp, hfi)
+rho_water <- rhohat(bird_ppp, water)
 ```
 
 ```{r}
 par(mfrow = c(2,2))
-plot(rho_elev, xlim=c(0, max(rho_elev$elev)),
+plot(rho_elev, xlim=c(0, 1500),
      main = "",
      xlab = "Elevation (m)")
 plot(rho_forest,
@@ -185,14 +221,14 @@ plot(rho_forest,
 plot(rho_hfi,
      main = "",
      xlab = "HFI")
-plot(rho_water,
+plot(rho_water, xlim=c(0, 16000),
      main = "",
      xlab = "Water distribution")
 ```
 
 # K-function
 ```{r}
-E_bird <- envelope(bird,
+E_bird <- envelope(bird_ppp,
                   Kest,
                   correction="border",
                   rank = 1,
@@ -205,21 +241,14 @@ plot(E_bird,
 
 ## PCF
 ```{r}
-rm(DATA)
-rm(bird_data)
-rm(bird_ppp)
-gc()
-```
-
-```{r}
-pcf_bird_hom <- envelope(bird,
+pcf_bird_hom <- envelope(bird_ppp,
                           pcf,
-                          simulate = expression(rpoispp(density.ppp(bird))),
+                          simulate = expression(rpoispp(density.ppp(bird_ppp))),
                           rank = 1,
                           nsim = 19)
-pcf_bird_inhom <- envelope(bird,
+pcf_bird_inhom <- envelope(bird_ppp,
                           pcfinhom,
-                          simulate = expression(rpoispp(density.ppp(bird))),
+                          simulate = expression(rpoispp(density.ppp(bird_ppp))),
                           rank = 1,
                           nsim = 19)
 par(mfrow = c(1,2))
@@ -234,31 +263,68 @@ cor.im(elev, forest, hfi, water, use = 'complete.obs')
 
 ## Model fitting
 ```{r}
-fit <- ppm(bird, ~ hfi + I(hfi^2) + forest + I(forest^2) + I(hfi*forest))
-fit
-plot(fit,
+fit1 <- ppm(bird_ppp, ~ forest + I(forest^2) + water)
+fit1
+plot(fit1,
      se = FALSE,
      superimpose = FALSE)
 
-plot(bird,
+plot(bird_ppp,
      pch = 16,
-     cex = 0.3,
+     cex = 0.5,
      cols = "green",
      add = TRUE)
 ```
 
 ```{r}
-fit <- ppm(bird, ~ forest, Poisson())
-fit
-plot(fit,
+quadrat.test(fit1, nx = 4, ny = 2)
+```
+
+```{r}
+par_res_water <- parres(fit1, "water")
+par_res_forest <- parres(fit1, "forest")
+
+par(mfrow = c(1,2))
+plot(par_res_water,
+     legend = FALSE,
+     lwd = 2,
+     main = "",
+     xlab = "Water distribution")
+plot(par_res_forest,
+     legend = FALSE,
+     lwd = 2,
+     main = "",
+     xlab = "Forest(percent)")
+```
+
+
+```{r}
+fit2 <- ppm(bird_ppp, ~ water)
+fit2
+plot(fit2,
      se = FALSE,
      superimpose = FALSE)
 
-plot(bird,
+plot(bird_ppp,
      pch = 16,
-     cex = 0.3,
+     cex = 0.5,
      cols = "green",
      add = TRUE)
 ```
 
+```{r}
+par_res_water <- parres(fit2, "water")
+
+plot(par_res_water,
+     legend = FALSE,
+     lwd = 2,
+     main = "",
+     xlab = "Water distribution")
+```
+
+```{r}
+print(AIC(fit1))
+print(AIC(fit2))
+print(anova(fit1, fit2, test="LRT"))
+```
 
