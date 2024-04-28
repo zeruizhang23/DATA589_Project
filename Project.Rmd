@@ -83,7 +83,7 @@ bird_data$year <- as.integer(format(as.Date(bird_data$eventDate, "%Y-%m-%d"), "%
 
 ggplot(bird_data, aes(x = factor(year))) +
   geom_bar(aes(fill = season)) +
-  labs(title = "Distribution of Observations by and Year",
+  labs(title = "Distribution of Observations by Season and Year",
        x = "Year",
        y = "Count of Observations")
 ```
@@ -323,8 +323,24 @@ plot(par_res_water,
 ```
 
 ```{r}
+fit3 <- ppm(bird_ppp, ~ forest + I(forest^2) + elev + hfi)
+fit3
+plot(fit3,
+     se = FALSE,
+     superimpose = FALSE)
+
+plot(bird_ppp,
+     pch = 16,
+     cex = 0.5,
+     cols = "green",
+     add = TRUE)
+```
+
+
+```{r}
 print(AIC(fit1))
 print(AIC(fit2))
-print(anova(fit1, fit2, test="LRT"))
+print(AIC(fit3))
+print(anova(fit1, fit2, fit3, test="LRT"))
 ```
 
