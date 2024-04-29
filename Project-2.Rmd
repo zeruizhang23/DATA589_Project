@@ -411,6 +411,29 @@ print(AIC(fit3))
 print(anova(fit1, fit2, fit3, test="LRT"))
 ```
 ```{r}
+par_res_forest <- parres(fit3, "forest")
+par_res_elev <- parres(fit3, "elev")
+par_res_hfi <- parres(fit3, "hfi")
+
+par(mfrow = c(2,2))
+plot(par_res_forest,
+     legend = FALSE,
+     lwd = 2,
+     main = "",
+     xlab = "Forest(percent)")
+plot(par_res_elev,
+     legend = FALSE,
+     lwd = 2,
+     main = "",
+     xlab = "Elevation")
+plot(par_res_hfi,
+     legend = FALSE,
+     lwd = 2,
+     main = "",
+     xlab = "HFI")
+```
+
+```{r}
 lurking(fit3, water,
         type = "raw", cumulative = F, envelope = T,
         xlab = "Water")
@@ -434,6 +457,36 @@ AIC(fit3); AIC(fit4)
 anova(fit3, fit4, test = "LRT")
 ```
 ```{r}
+par_res_water <- parres(fit4, "water")
+par_res_forest <- parres(fit4, "forest")
+par_res_elev <- parres(fit4, "elev")
+par_res_hfi <- parres(fit4, "hfi")
+
+par(mfrow = c(2,2))
+plot(par_res_water,
+     legend = FALSE,
+     lwd = 2,
+     main = "",
+     xlab = "Water distribution")
+plot(par_res_forest,
+     legend = FALSE,
+     lwd = 2,
+     main = "",
+     xlab = "Forest(percent)")
+plot(par_res_elev,
+     legend = FALSE,
+     lwd = 2,
+     main = "",
+     xlab = "Elevation")
+plot(par_res_hfi,
+     legend = FALSE,
+     lwd = 2,
+     main = "",
+     xlab = "HFI")
+```
+
+
+```{r}
 fit5 <- ppm(bird_ppp ~ forest + I(forest^2) + elev + hfi + water + I(water^2))
 fit5
 plot(fit5,
@@ -445,6 +498,34 @@ plot(bird_ppp,
      cex = 0.5,
      cols = "green",
      add = TRUE)
+```
+```{r}
+par_res_water <- parres(fit5, "water")
+par_res_forest <- parres(fit5, "forest")
+par_res_elev <- parres(fit5, "elev")
+par_res_hfi <- parres(fit5, "hfi")
+
+par(mfrow = c(2,2))
+plot(par_res_water,
+     legend = FALSE,
+     lwd = 2,
+     main = "",
+     xlab = "Water distribution")
+plot(par_res_forest,
+     legend = FALSE,
+     lwd = 2,
+     main = "",
+     xlab = "Forest(percent)")
+plot(par_res_elev,
+     legend = FALSE,
+     lwd = 2,
+     main = "",
+     xlab = "Elevation")
+plot(par_res_hfi,
+     legend = FALSE,
+     lwd = 2,
+     main = "",
+     xlab = "HFI")
 ```
 
 ```{r}
@@ -469,6 +550,34 @@ plot(bird_ppp,
 ```{r}
 AIC(fit4); AIC(fit5)
 anova(fit5, fit6, test = "LRT")
+```
+```{r}
+par_res_water <- parres(fit6, "water")
+par_res_forest <- parres(fit6, "forest")
+par_res_elev <- parres(fit6, "elev")
+par_res_hfi <- parres(fit6, "hfi")
+
+par(mfrow = c(2,2))
+plot(par_res_water,
+     legend = FALSE,
+     lwd = 2,
+     main = "",
+     xlab = "Water distribution")
+plot(par_res_forest,
+     legend = FALSE,
+     lwd = 2,
+     main = "",
+     xlab = "Forest(percent)")
+plot(par_res_elev,
+     legend = FALSE,
+     lwd = 2,
+     main = "",
+     xlab = "Elevation")
+plot(par_res_hfi,
+     legend = FALSE,
+     lwd = 2,
+     main = "",
+     xlab = "HFI")
 ```
 
 ```{r}
